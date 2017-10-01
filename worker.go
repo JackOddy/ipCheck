@@ -1,29 +1,65 @@
 package main
 
 import (
-	"fmt"
+	"io/ioutil"
 	"net/http"
+	"sync"
 )
 
-var Report = func(s string, channel chan string) {
-	channel <- s
-}
-
 type Worker struct {
-	url, addr string
-	channel   chan string
+	Url       string
+	Addresses chan string
+	Quit      chan bool
+	Retry     chan bool
 }
 
-func (self Worker) ping() (resp *http.Response, ok bool) {
-	resp, err := http.Get(self.url)
+func (self *Worker) Start(wg *sync.WaitGroup) {
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-self.Quit:
+				return
+			case <-self.Retry:
+				go self.Search()
+			}
+		}
+
+	}()
+
+	self.Search()
+}
+
+func (self *Worker) Stop() {
+	self.Quit <- true
+}
+
+func (self *Worker) Search() {
+	if address, ok := self.getAddress(); ok {
+		self.Addresses <- address
+		return
+	}
+	self.Retry <- true
+}
+
+func (self *Worker) getAddress() (address string, ok bool) {
+	resp, err := http.Get(self.Url)
 
 	if err != nil {
-		ok = false
+		return
 	}
 
-	return
-}
+	if resp.StatusCode > 399 {
+		return
+	}
 
-func (self Worker) report() {
-	go Report(self.addr, self.channel)
+	defer resp.Body.Close()
+
+	bytes, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return
+	}
+
+	return string(bytes), true
 }
