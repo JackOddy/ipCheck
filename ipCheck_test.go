@@ -15,17 +15,23 @@ func setUpServers(t *testing.T, urls []string) (finish func()) {
 
 func TestIpCheck(t *testing.T) {
 	Sites = []string{
+		"http://localhost:3000/1", // wil fail
+		"http://localhost:4000/2", //will fail
+		"http://localhost:5000",
+		"http://localhost:6000",
+	}
+	Ports := []string{
 		":3000",
 		":4000",
 		":5000",
 		":6000",
 	}
 
-	defer setUpServers(t, Sites)()
-	expected := "testIp"
+	defer setUpServers(t, Ports)()
+	expected := "12345.12345\n"
 
 	var result string
-	Report = func(r string) {
+	PrintAddress = func(r string) {
 		result = r
 	}
 
@@ -34,5 +40,4 @@ func TestIpCheck(t *testing.T) {
 	if result != expected {
 		t.Fatal("Expected", expected, "to equal", result)
 	}
-
 }
