@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sync"
+	. "time"
 )
 
 type Worker struct {
@@ -39,6 +40,7 @@ func (self *Worker) Search() {
 		self.Addresses <- address
 		return
 	}
+	Sleep(Second)
 	self.Retry <- true
 }
 
